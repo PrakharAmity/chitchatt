@@ -1,8 +1,11 @@
+// prakharamity/chitchatt/chitchatt-main/app/page.tsx
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Html5QrcodeScanner } from 'html5-qrcode';
+import toast from 'react-hot-toast'; 
 
 // 🔹 QR Scanner Component
 function QrCodeScannerComponent({ onScanSuccess }: { onScanSuccess: (decodedText: string) => void }) {
@@ -71,7 +74,10 @@ export default function HomePage() {
             }
 
             const data: RoomData = await response.json();
+            
+            // 🟢 CHANGE: Now we set the state instead of redirecting
             setCreatedRoom(data);
+            
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An unknown error occurred.');
         } finally {
@@ -90,6 +96,30 @@ export default function HomePage() {
 
         router.push(`/chat/${code}`);
     };
+    
+    // 🟢 NEW: Function to copy the room join link
+    const handleCopyLink = () => {
+        if (createdRoom?.room_code) {
+            const joinUrl = `${window.location.origin}/chat/${createdRoom.room_code}`;
+            navigator.clipboard.writeText(joinUrl)
+                .then(() => toast.success("Room link copied to clipboard!"))
+                .catch(() => toast.error("Failed to copy link."));
+        }
+    };
+    
+    // 🟢 NEW: Function to download the QR code image
+    const handleDownloadQr = () => {
+        if (createdRoom?.qrCodeUrl) {
+            const link = document.createElement('a');
+            link.href = createdRoom.qrCodeUrl;
+            link.download = `chitchatt-${createdRoom.room_code}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast.success("QR code downloaded!");
+        }
+    };
+    
 
     const handleScanSuccess = (decodedText: string) => {
         let code = decodedText;
@@ -122,12 +152,28 @@ export default function HomePage() {
                         <div className="flex justify-center mt-4">
                             <img src={createdRoom.qrCodeUrl} alt="Chat Room QR Code" className="p-2 bg-white rounded-lg" />
                         </div>
-                        <button
-                            onClick={() => setCreatedRoom(null)}
-                            className="w-full mt-6 py-2 font-semibold text-white bg-gray-600 rounded-md hover:bg-gray-700"
-                        >
-                            Back to Home
-                        </button>
+                        
+                        {/* 🟢 NEW: Action buttons */}
+                        <div className="flex flex-col space-y-2 mt-6">
+                            <button
+                                onClick={() => router.push(`/chat/${createdRoom.room_code}`)}
+                                className="w-full py-3 font-semibold text-white bg-purple-600 rounded-md hover:bg-purple-700 transition-colors"
+                            >
+                                Quick Join Chat
+                            </button>
+                            <button
+                                onClick={handleCopyLink}
+                                className="w-full py-3 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+                            >
+                                Copy Room Link
+                            </button>
+                            <button
+                                onClick={handleDownloadQr}
+                                className="w-full py-3 font-semibold text-white bg-gray-600 rounded-md hover:bg-gray-700 transition-colors"
+                            >
+                                Download QR Code
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     <>
